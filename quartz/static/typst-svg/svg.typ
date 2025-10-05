@@ -2,6 +2,6 @@
 
 #set align(center)
 
-#scale(125%, reflow: true)[
+#scale(100%, reflow: true)[
 {{code}}
 ]
