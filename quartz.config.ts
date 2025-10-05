@@ -72,6 +72,7 @@ const config: QuartzConfig = {
       Plugin.CrawlLinks({ markdownLinkResolution: "shortest" }),
       Plugin.Description(),
       Plugin.Latex({ renderEngine: "typst" }),
+      Plugin.TypstSvg({ inline: false }),
     ],
     filters: [Plugin.RemoveDrafts()],
     emitters: [
