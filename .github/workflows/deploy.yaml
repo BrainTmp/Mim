@@ -28,7 +28,7 @@ jobs:
         run: |
           wget https://github.com/typst/typst/releases/latest/download/typst-x86_64-unknown-linux-musl.tar.xz
           tar -xf typst-x86_64-unknown-linux-musl.tar.xz
-          sudo mv typst /usr/local/bin/typst
+          sudo mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst
           typst --version
       - name: Install Dependencies
         run: npm ci
