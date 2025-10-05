@@ -5,7 +5,7 @@ tags:
 ---
 # Basics
 在常见的Tensor的机器表示中，我们经常使用行优先、列优先等方法描述 **nD坐标** $->$ **1D顺序索引的物理内存** 的映射。CuTe把这一想法抽象为更一般的Layout，以支持复杂的内部结构，从而描述Tensor Core指令要求的输入矩阵的排布（据说由于硬件上的systolic array导致）。
-- 在这种抽象中，一个Tensor 即其 Layout（如何解释坐标）+ 对应数据的物理存储。
+- 在这种抽象中，一个[[Tensor]]即其 Layout（如何解释坐标）+ 对应数据的物理存储（称为Engine）。
 ## Natural Coordinates
 相较于常见的定长列表描述的坐标，CuTe考虑的是一种*层级化（Hierarchical）* 的坐标，以其`IntTuple`描述：`IntTuple`递归定义，可以是一个`int`和`IntTuple`作为元素的tuple：
 
@@ -67,7 +67,7 @@ $$
 $$
 其中 $S_i$ 也是子shape。nD coordinate就是一个 $n$-tuple，每个位置由 shape $S_i$ 的 1D coordinate 索引。
 
-### Layout 也是整数到整数的函数
+### Layout 也对应一个整数到整数的函数
 取定co-lexicographical的标准表示，我们就有了 1D coordiante。此时对于任何layout都可以统一成 $hat("Layout"): [0, op("size")("Layout") ) -> ZZ$ 的函数：
 $$
 "1D Coordinate" n |->^(hat(f)^(-1)) "Natural Coordinate" |->^"Layout" "Memory Index" ZZ \
