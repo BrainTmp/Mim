@@ -146,7 +146,7 @@ tags:
 - TODO: covariant functor $F$ 构造 `self` type
 
 
-## Final Algebra and Co-induction
+## Final Co-algebra and Co-induction
 
 # (Co)inductive Types 的现实理解
 
