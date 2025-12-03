@@ -13,12 +13,12 @@ title: Call-by-Need
 
 # Call-by-Need 的自指问题与 Weak Head Normal Form
 
-在 pure, 无状态, call-by-name 的语言中，`fix` 可以轻易创造类似 `fix(x. x + 1)` 这样的发散项。尽管不停机，由于我们用的是 by-name 的替换，整个 evaluation 过程并不会遇到什么问题。
+在 pure, 无状态, call-by-name 的语言中，`fix` 可以轻易创造类似 `fix(x. fst(x))` 这样的发散项。尽管不停机，由于我们用的是 by-name 的替换，整个 evaluation 过程并不会遇到什么问题。
 
 但是 call-by-need 语义规定我们的求值还要高效（**至多求值一次**）：我们必须缓存求值结果。为了实现结果的缓存，我们不得不放弃 substitution，而采用带 heap 状态的求值语义：
 - 为了求 `fix(x.e)`，给 $e$ 分配一个 memory cell $a$；
 - 求值 $e arrow.double.b v$，结果填入 $a$。
-这带来了潜在的危险：**Causality Violation**。对于 `e = x + 1`，为了填充 memory cell $a$，我们必须计算 $+$；因而必须要 $a$ 的值来完成计算（这时还不存在）。与 call-by-name 不同的是，我们没法再次替换了——这直接违反求值至多一次的假设。因此我们必须**检测出这样不良构的递归计算，并直接以一个 stuck 的状态停机**。
+这带来了潜在的危险：**Causality Violation**。对于 `e = fst(x)`，为了填充 memory cell $a$，我们必须计算 $+$；因而必须要 $a$ 的值来完成计算（这时还不存在）。与 call-by-name 不同的是，我们没法再次替换了——这直接违反求值至多一次的假设。因此我们必须**检测出这样不良构的递归计算，并直接以一个 stuck 的状态停机**。
 ## Guarded Recursion
 
 在解决这个问题之前，我们先来思考：相比于“检测出这样不良构的计算”，有没有取巧的方法？
@@ -31,13 +31,20 @@ title: Call-by-Need
 
 我们可以把这种“遇到壳子就停”的特权，从函数推广到一般的数据结构上。在惰性语义中，我们将 **Constructors**（如 `cons`, `succ`, `pair`）以及 **Lambda** 统称为 **Introduction Forms**。它们的共同点在于**它们都是求值的终点（Value）**。
 
-与之对立的是，为什么 `fix(x. x + 1)` 是不良的计算？答案在于，$+$ （以及 pattern matching, if）都是对应数据的 **Elimination Form**，且只有它们需要且必须使用数据。在惰性求值里，这意味着我们必须开始求这个值了（force）。基于这样的观察，我们便有了判断递归计算是否良构的方法：**Guarded Recursion**。
+与之对立的是，为什么 `fix(x. fst(x))` 是不良的计算？答案在于，`fst`（以及 pattern matching, if 等）都是对应数据的 **Elimination Form**：只有它们需要且必须使用数据。在惰性求值里，这意味着我们必须开始求这个值了（force）。基于上述观察，我们便有了判断递归计算是否良构的方法：**Guarded Recursion**。
 
 > [!definition] Guarded Recursion
 > 
 > 如果一个递归变量的所有出现都被包裹在 **Introduction Forms** 内部，那么这个递归就是 **Guarded** 的，也是安全的。
 > - `fix(x. cons(1, x))`, `fun(f; x. ...f) = fix(f. fn x => ...f)` 都是安全的，其中 $x$ 被 `cons` 保护，$f$ 被 λ 保护。
-> - `fix(x. x + 1)`, `fix(x. f x)` 都被排除掉，因为它们一直到最外层都直接暴露在 elimination form 下。
+> - `fix(x. fst(x))`, `fix(x. f x)` 都被排除掉，因为它们一直到最外层都直接暴露在 elimination form 下。
+
+> [!warning] 关于 `+` 等运算的注解
+> 
+> 实际上本文最初用 `fix(x. x + 1)` 作为例子。需要指出的是，`+` 的安全性依赖其实现方式。
+> - 如果 `+` 是一个原语：假设我们的抽象机能直接进行 `int` 加法，那么为了执行指令，它在两个参数位置上都需要是 force 求值；
+> - 但是 `nat` 上 `+` 是归纳定义的，考虑在第一个参数上的归纳：`add(x, y) = ifz(x; y; x'. succ(add(x', y)))`
+> 	- 这样的定义对第一个位置是严格的（`fix(x. add(x, 1))` unguarded），但是在第二个位置透传，`fix(x. add(1, x))` 本质上也是 guarded 的。
 
 ## 求值目标：Weak Head Normal Form
 
@@ -110,4 +117,28 @@ $$
 & nu Sigma, a tilde tau {mu times.circle a arrow.hook bullet || e} |-> nu Sigma, a tilde tau {mu times.circle a arrow.hook bullet || e'} \
 => & nu Sigma, a tilde tau {mu times.circle a arrow.hook e || @a} |-> nu Sigma, a tilde tau {mu times.circle a arrow.hook e' || @a}
 $$
+
+## Safety
+
+### Progress
+
+为了在 progress 的陈述中接受 blackhole 为一种非 stuck 的最终状态，我们定义以下的 $nu Sigma {mu || e} "loops"$ ，表示求值过程中发现 unguarded 的递归路径：
+
+
+> [!definition] $nu Sigma {mu || e} "loops"$ 
+> - 引入：尝试在求值过程中 force 自身：$nu Sigma, a tilde tau {mu times.circle a arrow.hook bullet || @a} "loops"$
+> - loops 沿 context-switching 传播：$nu Sigma, a tilde tau {mu times.circle a arrow.hook bullet || e} "loops" => nu Sigma, a tilde tau {mu times.circle a arrow.hook e || @a} "loops"$
+> - loops 沿 elimination form 传播（因为 elimination form force 一次求值），例：$nu Sigma {mu || e_1} "loops" => nu Sigma {mu || mono("ap")(e_1, e_2)} "loops"$
+
+
+> [!theorem] Progress of Call-by-Need PCF
+> 如果 $tack nu Sigma {mu || e} "ok"$，那么以下三者必成立一个：
+> - $nu Sigma {mu || e} "final"$
+> - $nu Sigma {mu || e} "loops"$
+> - $exists Sigma', mu', e' "s.t." nu Sigma {mu || e} |-> nu Sigma' {mu' || e'}$
+
+### Preservation
+
+> [!theorem] Preservation of Call-by-Need PCF
+> 如果 $tack nu Sigma {mu || e} "ok"$ 且 $nu Sigma {mu || e} |-> nu Sigma' {mu' || e'}$，那么 $tack nu Sigma' {mu' || e'} "ok"$
 
