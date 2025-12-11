@@ -5,7 +5,7 @@ title: Call-by-Need
 ---
 以下假定语言 pure，不妨在 Call-by-name PCF 中讨论。
 
-一般考虑实现 lazyness，我们会先想到 call-by-name (CBN)。但是对于同一个名字的多次使用会触发多次求值，因而我们会考虑“缓存”求值结果，或者说目标就是保证**求值至多发生一次**。这是 call-by-need 的核心保证，可以说 call-by-need = call-by-name + memoization。尽管概念听起来如此简单，保证求值安全运作还是需要引入更多的机制：
+一般考虑实现 laziness，我们会先想到 call-by-name (CBN)。但是对于同一个名字的多次使用会触发多次求值，因而我们会考虑“缓存”求值结果，或者说目标就是保证**求值至多发生一次**。这是 call-by-need 的核心保证，可以说 call-by-need = call-by-name + memoization。尽管概念听起来如此简单，保证求值安全运作还是需要引入更多的机制：
 
 考虑在语言中引入一个 heap，其中存储了许多 once-cell 来缓存求值结果。但是当我们引入 **heap** 的同时，同时也产生了**时间**上的依赖：在求值完成前如果我们尝试使用这次求值本身的结果，整个过程该如何继续下去？
 
